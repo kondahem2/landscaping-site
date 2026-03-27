@@ -1,0 +1,8 @@
+node_modules
+.env
+data/leads.jsonl
+data/site-content.json
+data/admin.hash
+public/uploads/*
+!public/uploads/.gitkeep
+npm-debug.log*

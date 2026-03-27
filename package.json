@@ -1,0 +1,30 @@
+{
+  "name": "landscaping-leads-site",
+  "version": "1.0.0",
+  "description": "Lead generation website for Harmeet Landscaping",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "hash-password": "node scripts/hash-password.js",
+    "share": "node scripts/share-tunnel.js"
+  },
+  "keywords": [
+    "landscaping",
+    "leads",
+    "website"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "multer": "^1.4.5-lts.1",
+    "sanitize-html": "^2.13.0"
+  }
+}

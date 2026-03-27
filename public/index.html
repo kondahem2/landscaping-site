@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta id="meta-desc" name="description" content="" />
+    <title id="doc-title">Harmeet Landscaping</title>
+    <link rel="stylesheet" href="./styles.css?v=5" />
+    <link rel="stylesheet" href="./admin.css?v=5" />
+  </head>
+  <body>
+    <div id="site-view">
+      <header class="hero">
+        <nav class="container nav">
+          <div class="brand" id="site-brand">Harmeet Landscaping</div>
+          <div class="nav-links">
+            <a href="#services">Services</a>
+            <a href="#gallery">Gallery</a>
+            <a href="#contact">Contact</a>
+            <a id="nav-call" href="tel:" class="btn btn-outline">Call Now</a>
+          </div>
+        </nav>
+        <section class="container hero-content">
+          <div id="hero-mount"></div>
+        </section>
+      </header>
+
+      <section class="trust-bar">
+        <div class="container trust-grid" id="trust-mount"></div>
+      </section>
+
+      <main>
+        <section class="container section" id="services">
+          <h2 id="services-title"></h2>
+          <div class="cards" id="services-mount"></div>
+        </section>
+
+        <section class="section section-alt" id="gallery">
+          <div class="container">
+            <div id="gallery-title" class="section-h2"></div>
+            <div class="section-lead" id="gallery-lead"></div>
+            <div id="gallery-mount" class="gallery-mount"></div>
+            <div id="gallery-view-more-wrap" class="gallery-view-more-wrap" hidden>
+              <button type="button" class="btn gallery-view-more-btn" id="gallery-view-more-btn">
+                View more projects
+              </button>
+            </div>
+            <div id="gallery-rest" class="gallery-rest" hidden aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <section class="container section" id="reviews">
+          <h2 id="reviews-title">What clients say</h2>
+          <div class="cards" id="reviews-mount"></div>
+        </section>
+
+        <section class="section section-alt" id="process">
+          <div class="container">
+            <div id="process-title" class="section-h2"></div>
+            <div class="steps" id="process-mount"></div>
+          </div>
+        </section>
+
+        <section class="container section" id="about">
+          <div class="about-grid">
+            <div id="about-main"></div>
+            <div class="about-card" id="about-card"></div>
+          </div>
+        </section>
+
+        <section class="section section-alt" id="contact">
+          <div class="container form-wrap contact-block">
+            <div id="contact-copy"></div>
+            <div class="contact-cta-panel">
+              <p class="contact-lead">Ready to get started?</p>
+              <button type="button" class="btn btn-block" id="contact-open-quote" data-open-quote>
+                Get a free quote
+              </button>
+              <p id="contact-phone-line"></p>
+              <p id="contact-email-line"></p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="container">
+          <p id="footer-line"></p>
+        </div>
+      </footer>
+
+      <button type="button" class="sticky-cta" id="sticky-open-quote" data-open-quote aria-haspopup="dialog">
+        Get free quote
+      </button>
+
+      <div id="quote-modal" class="modal" hidden aria-hidden="true">
+        <div class="modal-backdrop" data-close-modal tabindex="-1"></div>
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
+          <button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>
+          <h2 id="quote-modal-title">Get a free quote</h2>
+          <form id="quoteForm" class="lead-form" novalidate>
+            <label>
+              Full name
+              <input type="text" name="fullName" required minlength="2" autocomplete="name" />
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" required autocomplete="email" />
+            </label>
+            <label>
+              Phone
+              <input type="tel" name="phone" required minlength="8" autocomplete="tel" />
+            </label>
+            <label>
+              Service needed
+              <select name="serviceType" id="service-select" required></select>
+            </label>
+            <label>
+              Project details
+              <textarea
+                name="message"
+                rows="4"
+                required
+                minlength="10"
+                placeholder="Tell us what you want done..."
+              ></textarea>
+            </label>
+            <label>
+              Yard photo URL (optional)
+              <input type="url" name="yardPhotoUrl" placeholder="https://example.com/photo.jpg" />
+            </label>
+
+            <div class="hp-field" aria-hidden="true">
+              <label for="website">Website</label>
+              <input id="website" type="text" name="website" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <button type="submit" class="btn btn-block">Submit request</button>
+            <p id="formStatus" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-view" class="admin-view" hidden>
+      <header class="admin-site-header">
+        <a href="/" class="admin-site-brand">Harmeet Landscaping</a>
+        <nav class="admin-site-nav" aria-label="Admin">
+          <a href="/" class="admin-nav-link">View website</a>
+          <span class="admin-nav-tab" aria-current="page">Edit content</span>
+        </nav>
+      </header>
+      <div class="admin-app">
+        <div id="login-panel" class="panel">
+          <h1>Site admin</h1>
+          <p class="muted">Sign in to edit your public pages. This area is not linked in the main navigation.</p>
+          <form id="login-form">
+            <label class="stack">
+              Password
+              <input type="password" name="password" required autocomplete="current-password" />
+            </label>
+            <button type="submit" class="btn-primary">Sign in</button>
+            <p id="login-error" class="error" role="alert"></p>
+          </form>
+          <p class="muted"><a href="/">← Back to website</a></p>
+        </div>
+
+        <div id="editor-panel" class="panel" hidden>
+          <header class="admin-header">
+            <div>
+              <h1>Edit site content</h1>
+              <p class="muted">
+              Type in plain English — no HTML needed. Use <strong>Save changes</strong> when you are done.
+            </p>
+            </div>
+            <div class="admin-actions">
+              <button type="button" id="save-btn" class="btn-primary">Save changes</button>
+              <button type="button" id="logout-btn" class="btn-secondary">Log out</button>
+              <span id="save-status" class="save-status" role="status"></span>
+            </div>
+          </header>
+          <div id="editor-root"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="./app.js?v=5"></script>
+    <script src="./admin.js?v=5"></script>
+  </body>
+</html>

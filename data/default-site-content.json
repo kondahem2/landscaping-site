@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "brand": "Harmeet Landscaping",
+  "meta": {
+    "title": "Harmeet Landscaping | Get a Free Quote",
+    "description": "Harmeet Landscaping delivers premium lawn care, hardscaping, and garden design services. Get a free quote today."
+  },
+  "contact": {
+    "phone": "+15125550199",
+    "email": "hello@harmeetlandscaping.com"
+  },
+  "hero": {
+    "eyebrowHtml": "<p>Trusted Local Landscaping Team</p>",
+    "titleHtml": "<h1>Transform your outdoor space into something beautiful</h1>",
+    "bodyHtml": "<p>Professional landscaping services in Your City for homes and businesses. Get reliable design, build, and ongoing maintenance from one trusted team.</p>",
+    "ctaPrimary": "Get a Free Quote",
+    "ctaSecondary": "Call Now"
+  },
+  "trustItems": [
+    "<p><strong>5-Star Rated</strong> by local homeowners</p>",
+    "<p><strong>100+ Projects</strong> completed</p>",
+    "<p><strong>10+ Years</strong> serving Your City</p>",
+    "<p><strong>Licensed &amp; Insured</strong> professional team</p>"
+  ],
+  "servicesTitle": "Landscaping services",
+  "services": [
+    { "titleHtml": "Lawn Care", "bodyHtml": "<p>Weekly mowing, edging, fertilization, and seasonal maintenance plans.</p>" },
+    { "titleHtml": "Garden Design", "bodyHtml": "<p>Custom planting layouts, soil planning, and curb-appeal upgrades.</p>" },
+    { "titleHtml": "Hardscaping", "bodyHtml": "<p>Patios, pathways, retaining walls, and outdoor living spaces built to last.</p>" },
+    { "titleHtml": "Tree Trimming", "bodyHtml": "<p>Safe pruning and clean-up services that improve tree health and appearance.</p>" },
+    { "titleHtml": "Irrigation Systems", "bodyHtml": "<p>Smart sprinklers and efficient watering systems for year-round performance.</p>" },
+    { "titleHtml": "Seasonal Cleanup", "bodyHtml": "<p>Spring and fall cleanups to keep your landscape neat and ready to thrive.</p>" }
+  ],
+  "gallery": {
+    "titleHtml": "<h2>Before &amp; after project gallery</h2>",
+    "leadHtml": "<p>Real transformations from properties like yours. Upload your photos in the admin panel.</p>",
+    "visibleCount": 2,
+    "pairs": [
+      {
+        "beforeImage": "",
+        "afterImage": "",
+        "beforeCaptionHtml": "<p>Overgrown front yard</p>",
+        "afterCaptionHtml": "<p>Clean modern curb appeal</p>"
+      },
+      {
+        "beforeImage": "",
+        "afterImage": "",
+        "beforeCaptionHtml": "<p>Unused backyard corner</p>",
+        "afterCaptionHtml": "<p>Functional patio retreat</p>"
+      }
+    ]
+  },
+  "testimonials": [
+    {
+      "stars": "★★★★★",
+      "quoteHtml": "<p>\"They completely transformed our backyard. Highly recommend!\"</p>",
+      "authorHtml": "<p class=\"reviewer\">- Priya S., Your City</p>",
+      "photoUrl": ""
+    },
+    {
+      "stars": "★★★★★",
+      "quoteHtml": "<p>\"Fast, professional, and the result looked better than we expected.\"</p>",
+      "authorHtml": "<p class=\"reviewer\">- Michael T., Your City</p>",
+      "photoUrl": ""
+    },
+    {
+      "stars": "★★★★★",
+      "quoteHtml": "<p>\"Great communication and very fair quote. We use them every season.\"</p>",
+      "authorHtml": "<p class=\"reviewer\">- Sarah L., Your City</p>",
+      "photoUrl": ""
+    }
+  ],
+  "processTitle": "<h2>How it works</h2>",
+  "processSteps": [
+    {
+      "titleHtml": "Request a quote",
+      "bodyHtml": "<p>Fill out the quick form or call us to share your project goals.</p>"
+    },
+    {
+      "titleHtml": "We design your space",
+      "bodyHtml": "<p>We recommend the right plan, timeline, and transparent pricing.</p>"
+    },
+    {
+      "titleHtml": "We build and maintain",
+      "bodyHtml": "<p>Your project is completed with quality craftsmanship and ongoing support.</p>"
+    }
+  ],
+  "about": {
+    "titleHtml": "<h2>About Harmeet Landscaping</h2>",
+    "bodyHtml": "<p>Harmeet Landscaping was built on one simple promise: make outdoor spaces beautiful, practical, and easy to maintain. Our team combines years of hands-on landscaping experience with dependable service you can count on.</p>",
+    "serviceAreasTitle": "Service areas",
+    "serviceAreasHtml": "<p>Serving: Your City, Northside, Eastwood, Lakeview, and nearby communities.</p>",
+    "phoneDisplay": "(512) 555-0199",
+    "emailDisplay": "hello@harmeetlandscaping.com"
+  },
+  "contactSection": {
+    "titleHtml": "<h2>Get a free quote</h2>",
+    "leadHtml": "<p>Tell us about your property and project. We usually respond within one business day.</p>",
+    "phoneDisplay": "(512) 555-0199",
+    "emailDisplay": "hello@harmeetlandscaping.com"
+  },
+  "footer": {
+    "copyrightName": "Harmeet Landscaping"
+  },
+  "serviceOptions": [
+    "Lawn Maintenance",
+    "Landscape Design",
+    "Hardscaping",
+    "Irrigation",
+    "Seasonal Cleanup"
+  ]
+}

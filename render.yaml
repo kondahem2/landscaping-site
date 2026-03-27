@@ -1,0 +1,19 @@
+# Render Blueprint — https://render.com/docs/infrastructure-as-code
+# Push this repo to GitHub, then: New → Blueprint → connect repo.
+# After deploy, add these in the service → Environment:
+#   ADMIN_PASSWORD   (or ADMIN_PASSWORD_HASH) — required for /admin login
+#
+# Free tier: the instance may sleep after idle time; first load can be slow.
+
+services:
+  - type: web
+    name: harmeet-landscaping
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
