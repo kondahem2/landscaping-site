@@ -1,6 +1,11 @@
 {
   "version": 1,
   "brand": "Harmeet Landscaping",
+  "nav": {
+    "servicesLabel": "Services",
+    "galleryLabel": "Gallery",
+    "contactLabel": "Contact"
+  },
   "meta": {
     "title": "Harmeet Landscaping | Get a Free Quote",
     "description": "Harmeet Landscaping delivers premium lawn care, hardscaping, and garden design services. Get a free quote today."
@@ -14,7 +19,15 @@
     "titleHtml": "<h1>Transform your outdoor space into something beautiful</h1>",
     "bodyHtml": "<p>Professional landscaping services in Your City for homes and businesses. Get reliable design, build, and ongoing maintenance from one trusted team.</p>",
     "ctaPrimary": "Get a Free Quote",
-    "ctaSecondary": "Call Now"
+    "ctaSecondary": "Call Now",
+    "background": {
+      "mode": "gradient",
+      "imageUrl": "",
+      "videoUrl": "",
+      "objectPosition": "center center",
+      "objectFit": "cover",
+      "overlayOpacity": 0.45
+    }
   },
   "trustItems": [
     "<p><strong>5-Star Rated</strong> by local homeowners</p>",
@@ -31,10 +44,12 @@
     { "titleHtml": "Irrigation Systems", "bodyHtml": "<p>Smart sprinklers and efficient watering systems for year-round performance.</p>" },
     { "titleHtml": "Seasonal Cleanup", "bodyHtml": "<p>Spring and fall cleanups to keep your landscape neat and ready to thrive.</p>" }
   ],
+  "reviewsTitle": "What clients say",
   "gallery": {
     "titleHtml": "<h2>Before &amp; after project gallery</h2>",
     "leadHtml": "<p>Real transformations from properties like yours. Upload your photos in the admin panel.</p>",
     "visibleCount": 2,
+    "viewMoreLabel": "View more projects",
     "pairs": [
       {
         "beforeImage": "",
@@ -97,7 +112,12 @@
     "titleHtml": "<h2>Get a free quote</h2>",
     "leadHtml": "<p>Tell us about your property and project. We usually respond within one business day.</p>",
     "phoneDisplay": "(512) 555-0199",
-    "emailDisplay": "hello@harmeetlandscaping.com"
+    "emailDisplay": "hello@harmeetlandscaping.com",
+    "ctaLeadHtml": "<p>Ready to get started?</p>",
+    "ctaButtonLabel": "Get a free quote",
+    "quoteModalTitle": "Get a free quote",
+    "stickyCtaLabel": "Get free quote",
+    "quoteFormSubmitLabel": "Submit request"
   },
   "footer": {
     "copyrightName": "Harmeet Landscaping"

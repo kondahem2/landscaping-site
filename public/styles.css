@@ -29,9 +29,56 @@ body {
 }
 
 .hero {
-  background: linear-gradient(145deg, var(--green-900), var(--green-700));
+  --hero-object-fit: cover;
+  --hero-object-position: center center;
+  --hero-overlay-opacity: 0.45;
+  position: relative;
+  overflow: hidden;
   color: var(--white);
   padding-bottom: 3rem;
+  background: linear-gradient(145deg, var(--green-900), var(--green-700));
+}
+
+.hero-bg-gradient {
+  background: linear-gradient(145deg, var(--green-900), var(--green-700));
+}
+
+.hero-bg-media {
+  background: var(--green-900);
+}
+
+.hero-media-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-media-slot {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-media-slot img,
+.hero-media-slot video {
+  width: 100%;
+  height: 100%;
+  object-fit: var(--hero-object-fit, cover);
+  object-position: var(--hero-object-position, center center);
+  display: block;
+}
+
+.hero-media-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgb(0 0 0 / var(--hero-overlay-opacity, 0.45));
+}
+
+.hero .nav,
+.hero .hero-content {
+  position: relative;
+  z-index: 2;
 }
 
 .nav {
@@ -231,7 +278,7 @@ h1 {
 }
 
 .gallery-item {
-  min-height: 200px;
+  min-height: clamp(160px, 42vw, 300px);
   border-radius: 14px;
   padding: 1rem;
   background: linear-gradient(160deg, #355d47, #2b4437);
@@ -242,16 +289,28 @@ h1 {
   overflow: hidden;
 }
 
+.gallery-item-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.gallery-item-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .gallery-item.has-image {
   background-color: #2b4437;
-  background-size: cover;
-  background-position: center;
 }
 
 .gallery-item.has-image::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent 55%);
   pointer-events: none;
 }
@@ -259,7 +318,7 @@ h1 {
 .gallery-item span,
 .gallery-caption {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .gallery-item span {
@@ -300,11 +359,14 @@ h1 {
 .review-photo {
   margin: -1rem -1rem 1rem -1rem;
   background: #e8f3ec;
+  aspect-ratio: 16 / 10;
+  max-height: min(45vh, 280px);
+  overflow: hidden;
 }
 
 .review-photo img {
   width: 100%;
-  height: 180px;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
@@ -373,6 +435,20 @@ h1 {
   padding: 1rem;
   display: grid;
   gap: 0.8rem;
+}
+
+.lead-form .lead-file-label input[type="file"] {
+  padding: 0.45rem 0;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.lead-form .field-hint {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
 
 label {
@@ -479,6 +555,35 @@ textarea:focus {
 .modal-panel h2 {
   margin-top: 0;
   padding-right: 2rem;
+}
+
+.quote-success-view {
+  text-align: center;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.quote-success-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: var(--green-100);
+  color: var(--green-500);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 3.5rem;
+}
+
+.quote-success-heading {
+  margin-bottom: 0.75rem;
+  color: var(--green-900);
+}
+
+.quote-success-message {
+  margin: 0 0 1.5rem;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--text);
 }
 
 .hp-field {

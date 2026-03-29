@@ -85,7 +85,6 @@
   const saveStatus = document.getElementById("save-status");
 
   let siteContent = null;
-  let plainBindings = [];
 
   function setDeep(obj, path, value) {
     let cur = obj;
@@ -100,21 +99,78 @@
     cur[path[path.length - 1]] = value;
   }
 
+  function tip(el, text) {
+    if (el && text) el.title = text;
+  }
+
   function ensureContentShape(raw) {
     const c = JSON.parse(JSON.stringify(raw || {}));
     c.meta = c.meta || {};
     c.contact = c.contact || {};
     c.hero = c.hero || {};
+    const hb = c.hero.background || {};
+    const posOk = new Set([
+      "center center",
+      "center top",
+      "center bottom",
+      "left center",
+      "right center",
+      "left top",
+      "right top",
+      "left bottom",
+      "right bottom"
+    ]);
+    let oa = Number(hb.overlayOpacity);
+    if (Number.isNaN(oa)) oa = 0.45;
+    oa = Math.max(0, Math.min(0.9, oa));
+    const imageUrlStr = typeof hb.imageUrl === "string" ? hb.imageUrl.trim() : "";
+    const videoUrlStr = typeof hb.videoUrl === "string" ? hb.videoUrl.trim() : "";
+    let hbMode = ["gradient", "image", "video"].includes(hb.mode) ? hb.mode : "gradient";
+    if (hbMode === "gradient") {
+      if (imageUrlStr) hbMode = "image";
+      else if (videoUrlStr) hbMode = "video";
+    }
+    c.hero.background = {
+      mode: hbMode,
+      imageUrl: imageUrlStr,
+      videoUrl: videoUrlStr,
+      objectPosition: typeof hb.objectPosition === "string" && posOk.has(hb.objectPosition.trim())
+        ? hb.objectPosition.trim()
+        : "center center",
+      objectFit: hb.objectFit === "contain" ? "contain" : "cover",
+      overlayOpacity: oa
+    };
     c.trustItems = Array.isArray(c.trustItems) ? c.trustItems : [];
     c.services = Array.isArray(c.services) ? c.services : [];
     c.gallery = c.gallery || {};
     c.gallery.pairs = Array.isArray(c.gallery.pairs) ? c.gallery.pairs : [];
+    if (typeof c.gallery.viewMoreLabel !== "string") c.gallery.viewMoreLabel = "View more projects";
+    if (typeof c.reviewsTitle !== "string") c.reviewsTitle = "What clients say";
     c.testimonials = Array.isArray(c.testimonials) ? c.testimonials : [];
     c.processSteps = Array.isArray(c.processSteps) ? c.processSteps : [];
     c.about = c.about || {};
     c.contactSection = c.contactSection || {};
+    if (typeof c.contactSection.ctaLeadHtml !== "string") {
+      c.contactSection.ctaLeadHtml = "<p>Ready to get started?</p>";
+    }
+    if (typeof c.contactSection.ctaButtonLabel !== "string") {
+      c.contactSection.ctaButtonLabel = "Get a free quote";
+    }
+    if (typeof c.contactSection.quoteModalTitle !== "string") {
+      c.contactSection.quoteModalTitle = "Get a free quote";
+    }
+    if (typeof c.contactSection.stickyCtaLabel !== "string") {
+      c.contactSection.stickyCtaLabel = "Get free quote";
+    }
+    if (typeof c.contactSection.quoteFormSubmitLabel !== "string") {
+      c.contactSection.quoteFormSubmitLabel = "Submit request";
+    }
     c.footer = c.footer || {};
     c.serviceOptions = Array.isArray(c.serviceOptions) ? c.serviceOptions : [];
+    c.nav = c.nav || {};
+    if (typeof c.nav.servicesLabel !== "string") c.nav.servicesLabel = "Services";
+    if (typeof c.nav.galleryLabel !== "string") c.nav.galleryLabel = "Gallery";
+    if (typeof c.nav.contactLabel !== "string") c.nav.contactLabel = "Contact";
     return c;
   }
 
@@ -163,6 +219,8 @@
     ta.rows = rows;
     ta.className = "plain-textarea";
     ta.value = htmlToPlainText(html);
+    ta.dataset.path = JSON.stringify(path);
+    ta.dataset.plainMode = "paragraph";
     lab.appendChild(ta);
     wrap.appendChild(lab);
     if (hint) {
@@ -172,7 +230,6 @@
       wrap.appendChild(h);
     }
     parent.appendChild(wrap);
-    plainBindings.push({ path, mode: "paragraph", el: ta });
   }
 
   function addPlainSingleLine(parent, label, hint, path, html, mode = "lineP") {
@@ -185,6 +242,8 @@
     inp.type = "text";
     inp.className = "plain-input";
     inp.value = htmlToPlainText(html);
+    inp.dataset.path = JSON.stringify(path);
+    inp.dataset.plainMode = mode;
     lab.appendChild(inp);
     wrap.appendChild(lab);
     if (hint) {
@@ -194,7 +253,6 @@
       wrap.appendChild(h);
     }
     parent.appendChild(wrap);
-    plainBindings.push({ path, mode, el: inp });
   }
 
   function addPlainHeading(parent, label, hint, path, html, tag) {
@@ -207,6 +265,8 @@
     inp.type = "text";
     inp.className = "plain-input";
     inp.value = headingHtmlToPlain(html, tag);
+    inp.dataset.path = JSON.stringify(path);
+    inp.dataset.plainMode = tag;
     lab.appendChild(inp);
     wrap.appendChild(lab);
     if (hint) {
@@ -216,7 +276,6 @@
       wrap.appendChild(h);
     }
     parent.appendChild(wrap);
-    plainBindings.push({ path, mode: tag, el: inp });
   }
 
   function addInput(parent, labelText, path, value, type = "text") {
@@ -235,6 +294,213 @@
     return input;
   }
 
+  function addSelect(parent, labelText, path, options, value, tooltip) {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const lab = document.createElement("label");
+    lab.className = "stack";
+    lab.textContent = labelText;
+    if (tooltip) lab.title = tooltip;
+    const sel = document.createElement("select");
+    sel.className = "plain-input admin-select";
+    sel.dataset.path = JSON.stringify(path);
+    if (tooltip) sel.title = tooltip;
+    options.forEach(([v, label]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = label;
+      sel.appendChild(o);
+    });
+    sel.value = value;
+    lab.appendChild(sel);
+    wrap.appendChild(lab);
+    parent.appendChild(wrap);
+    return sel;
+  }
+
+  function addNumberField(parent, labelText, hint, path, value, opts, tooltip) {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const lab = document.createElement("label");
+    lab.className = "stack";
+    lab.textContent = labelText;
+    if (tooltip) lab.title = tooltip;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = String(opts.min);
+    input.max = String(opts.max);
+    input.step = String(opts.step ?? 0.05);
+    input.value = String(value);
+    input.dataset.path = JSON.stringify(path);
+    input.className = "plain-input";
+    if (tooltip) input.title = tooltip;
+    lab.appendChild(input);
+    wrap.appendChild(lab);
+    if (hint) {
+      const h = document.createElement("p");
+      h.className = "field-hint";
+      h.textContent = hint;
+      wrap.appendChild(h);
+    }
+    parent.appendChild(wrap);
+    return input;
+  }
+
+  /**
+   * Image upload with hidden path field for save; no manual URL entry.
+   * @param {(url: string) => void} [onUploaded] — called with new URL or "" when removed
+   * @param {string} [tooltip] — native tooltip on hover
+   */
+  function addImageUpload(parent, labelText, path, value, onUploaded, tooltip) {
+    const wrap = document.createElement("div");
+    wrap.className = "field admin-image-upload";
+    const lab = document.createElement("label");
+    lab.className = "stack";
+    lab.textContent = labelText;
+    if (tooltip) lab.title = tooltip;
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.value = value || "";
+    hidden.dataset.path = JSON.stringify(path);
+    const preview = document.createElement("div");
+    preview.className = "admin-image-preview";
+    const img = document.createElement("img");
+    img.alt = "";
+    if (value) {
+      img.src = value;
+    } else {
+      img.hidden = true;
+    }
+    preview.appendChild(img);
+    const file = document.createElement("input");
+    file.type = "file";
+    file.accept = "image/*";
+    file.className = "admin-file-input";
+    tip(file, tooltip || "Choose an image file from your computer. It uploads immediately; click Save changes to publish.");
+    const actions = document.createElement("div");
+    actions.className = "admin-image-actions";
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn-secondary";
+    removeBtn.textContent = "Remove image";
+    tip(removeBtn, "Clear this uploaded image. Save changes to update the live site.");
+    removeBtn.hidden = !value;
+    file.addEventListener("change", async () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      saveStatus.textContent = "Uploading…";
+      try {
+        const fd = new FormData();
+        fd.append("file", f);
+        const res = await fetch("/api/admin/upload", { method: "POST", ...fetchOpts, body: fd });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.message || "Upload failed");
+        hidden.value = data.url;
+        img.src = data.url;
+        img.hidden = false;
+        removeBtn.hidden = false;
+        file.value = "";
+        saveStatus.textContent = "Image uploaded — click Save changes.";
+        if (onUploaded) onUploaded(data.url);
+      } catch (e) {
+        saveStatus.textContent = e.message || "Upload failed";
+      }
+    });
+    removeBtn.addEventListener("click", () => {
+      hidden.value = "";
+      img.removeAttribute("src");
+      img.hidden = true;
+      removeBtn.hidden = true;
+      file.value = "";
+      if (onUploaded) onUploaded("");
+    });
+    actions.appendChild(file);
+    actions.appendChild(removeBtn);
+    lab.appendChild(hidden);
+    lab.appendChild(preview);
+    lab.appendChild(actions);
+    wrap.appendChild(lab);
+    parent.appendChild(wrap);
+    return hidden;
+  }
+
+  function addVideoUpload(parent, labelText, path, value, onUploaded, tooltip) {
+    const wrap = document.createElement("div");
+    wrap.className = "field admin-image-upload";
+    const lab = document.createElement("label");
+    lab.className = "stack";
+    lab.textContent = labelText;
+    if (tooltip) lab.title = tooltip;
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.value = value || "";
+    hidden.dataset.path = JSON.stringify(path);
+    const preview = document.createElement("div");
+    preview.className = "admin-image-preview admin-video-preview";
+    const vid = document.createElement("video");
+    vid.controls = true;
+    vid.muted = true;
+    if (value) {
+      vid.src = value;
+    } else {
+      vid.hidden = true;
+    }
+    preview.appendChild(vid);
+    const file = document.createElement("input");
+    file.type = "file";
+    file.accept = "video/mp4,video/webm";
+    file.className = "admin-file-input";
+    tip(
+      file,
+      tooltip || "MP4 or WebM, max ~45 MB. Plays muted and loops on the homepage. Save changes after upload."
+    );
+    const actions = document.createElement("div");
+    actions.className = "admin-image-actions";
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn-secondary";
+    removeBtn.textContent = "Remove video";
+    tip(removeBtn, "Remove this video from the hero. Save changes to update the site.");
+    removeBtn.hidden = !value;
+    file.addEventListener("change", async () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      saveStatus.textContent = "Uploading video…";
+      try {
+        const fd = new FormData();
+        fd.append("file", f);
+        const res = await fetch("/api/admin/upload-hero", { method: "POST", ...fetchOpts, body: fd });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.message || "Upload failed");
+        hidden.value = data.url;
+        vid.src = data.url;
+        vid.hidden = false;
+        removeBtn.hidden = false;
+        file.value = "";
+        saveStatus.textContent = "Video uploaded — click Save changes.";
+        if (onUploaded) onUploaded(data.url);
+      } catch (e) {
+        saveStatus.textContent = e.message || "Upload failed";
+      }
+    });
+    removeBtn.addEventListener("click", () => {
+      hidden.value = "";
+      vid.removeAttribute("src");
+      vid.hidden = true;
+      removeBtn.hidden = true;
+      file.value = "";
+      if (onUploaded) onUploaded("");
+    });
+    actions.appendChild(file);
+    actions.appendChild(removeBtn);
+    lab.appendChild(hidden);
+    lab.appendChild(preview);
+    lab.appendChild(actions);
+    wrap.appendChild(lab);
+    parent.appendChild(wrap);
+    return hidden;
+  }
+
   function addTextarea(parent, labelText, value) {
     const wrap = document.createElement("div");
     wrap.className = "field";
@@ -251,36 +517,57 @@
     return ta;
   }
 
-  function applyPlainToPayload(out) {
-    plainBindings.forEach(({ path, mode, el }) => {
-      const v = el.value;
-      let outVal = "";
-      switch (mode) {
-        case "paragraph":
-          outVal = plainToParagraphHtml(v);
-          break;
-        case "lineP":
-          outVal = plainToSingleP(v);
-          break;
-        case "h1":
-          outVal = plainToHeadingHtml(v, "h1");
-          break;
-        case "h2":
-          outVal = plainToHeadingHtml(v, "h2");
-          break;
-        case "reviewer":
-          outVal = plainToReviewerHtml(v);
-          break;
-        default:
-          outVal = plainToParagraphHtml(v);
-      }
-      setDeep(out, path, outVal);
-    });
+  /**
+   * Reads every editor field from the live DOM so saves always match what the user sees.
+   * (Plain text fields use data-plain-mode; regular inputs/selects use values as-is.)
+   */
+  function collectPathFieldsFromDom(out) {
+    editorRoot
+      .querySelectorAll("input[data-path], select[data-path], textarea[data-path]")
+      .forEach((el) => {
+        const path = JSON.parse(el.dataset.path);
+        const key = path[path.length - 1];
+        const plainMode = el.dataset.plainMode;
+
+        if (plainMode) {
+          const v = el.value;
+          let outVal = "";
+          switch (plainMode) {
+            case "paragraph":
+              outVal = plainToParagraphHtml(v);
+              break;
+            case "lineP":
+              outVal = plainToSingleP(v);
+              break;
+            case "h1":
+              outVal = plainToHeadingHtml(v, "h1");
+              break;
+            case "h2":
+              outVal = plainToHeadingHtml(v, "h2");
+              break;
+            case "reviewer":
+              outVal = plainToReviewerHtml(v);
+              break;
+            default:
+              outVal = plainToParagraphHtml(v);
+          }
+          setDeep(out, path, outVal);
+          return;
+        }
+
+        if (key === "overlayOpacity") {
+          let n = parseFloat(el.value);
+          if (Number.isNaN(n)) n = 0.45;
+          setDeep(out, path, Math.max(0, Math.min(0.9, n)));
+          return;
+        }
+
+        setDeep(out, path, el.value);
+      });
   }
 
   function renderEditor(content) {
     siteContent = ensureContentShape(content);
-    plainBindings = [];
     editorRoot.innerHTML = "";
 
     try {
@@ -315,6 +602,13 @@
       ["meta", "description"],
       htmlToPlainText(c.meta.description || "")
     );
+    const navHint = document.createElement("p");
+    navHint.className = "field-hint";
+    navHint.textContent = "Top navigation link labels (next to Call).";
+    seo.appendChild(navHint);
+    addInput(seo, "Nav link: Services", ["nav", "servicesLabel"], c.nav.servicesLabel);
+    addInput(seo, "Nav link: Gallery", ["nav", "galleryLabel"], c.nav.galleryLabel);
+    addInput(seo, "Nav link: Contact", ["nav", "contactLabel"], c.nav.contactLabel);
     main.appendChild(seo);
 
     main.appendChild(sectionTitle("Contact (phone & email links)", "admin-contact"));
@@ -358,6 +652,93 @@
     );
     addInput(hero, "Primary button label", ["hero", "ctaPrimary"], c.hero.ctaPrimary);
     addInput(hero, "Secondary button label (next to Call)", ["hero", "ctaSecondary"], c.hero.ctaSecondary);
+
+    const hb = c.hero.background || {};
+    const hbSub = document.createElement("div");
+    hbSub.className = "sub-block";
+    const hbH = document.createElement("h3");
+    hbH.className = "sub-block-title";
+    hbH.textContent = "Hero background (full-width behind headline)";
+    hbSub.appendChild(hbH);
+    const hbIntro = document.createElement("p");
+    hbIntro.className = "field-hint";
+    hbIntro.textContent =
+      "Optional photo or looping video behind the top of the homepage. If you upload a file, it is shown even if the type is still set to the green gradient — pick Photo or Video to label it clearly. Adjust framing and overlay so text stays readable.";
+    hbSub.appendChild(hbIntro);
+
+    addSelect(
+      hbSub,
+      "Background type",
+      ["hero", "background", "mode"],
+      [
+        ["gradient", "Green gradient (default)"],
+        ["image", "Photo"],
+        ["video", "Video (MP4 / WebM, loops)"]
+      ],
+      hb.mode,
+      "Default green gradient, or upload a photo or short video for a full-bleed hero."
+    );
+
+    addImageUpload(
+      hbSub,
+      "Hero photo",
+      ["hero", "background", "imageUrl"],
+      hb.imageUrl,
+      null,
+      "Wide landscape works best. Uploads to your server; click Save changes to publish."
+    );
+
+    addVideoUpload(
+      hbSub,
+      "Hero video",
+      ["hero", "background", "videoUrl"],
+      hb.videoUrl,
+      null,
+      "MP4 or WebM. Autoplays muted and loops. Keep files reasonably small for mobile visitors."
+    );
+
+    addSelect(
+      hbSub,
+      "View / focus (center of the frame)",
+      ["hero", "background", "objectPosition"],
+      [
+        ["center center", "Center"],
+        ["center top", "Top"],
+        ["center bottom", "Bottom"],
+        ["left center", "Left"],
+        ["right center", "Right"],
+        ["left top", "Top left"],
+        ["right top", "Top right"],
+        ["left bottom", "Bottom left"],
+        ["right bottom", "Bottom right"]
+      ],
+      hb.objectPosition,
+      "Which part of the image or video stays centered when the browser crops on different screen sizes."
+    );
+
+    addSelect(
+      hbSub,
+      "How media fits the hero area",
+      ["hero", "background", "objectFit"],
+      [
+        ["cover", "Fill area (crop edges — recommended)"],
+        ["contain", "Show entire image (may add empty bands)"]
+      ],
+      hb.objectFit,
+      "Cover behaves like a banner crop. Contain shows the whole picture with possible letterboxing."
+    );
+
+    addNumberField(
+      hbSub,
+      "Text overlay darkness",
+      "0 = no dimming, 0.9 = very dark. Try 0.35–0.55 for white text on bright photos.",
+      ["hero", "background", "overlayOpacity"],
+      hb.overlayOpacity,
+      { min: 0, max: 0.9, step: 0.05 },
+      "Darkens the media behind the headline and buttons so text stays legible."
+    );
+
+    hero.appendChild(hbSub);
     main.appendChild(hero);
 
     main.appendChild(sectionTitle("Trust bar", "admin-trust"));
@@ -380,6 +761,7 @@
     addTrust.type = "button";
     addTrust.className = "btn-secondary";
     addTrust.textContent = "Add line";
+    tip(addTrust, "Adds another short trust line under the hero. Save changes to publish.");
     addTrust.addEventListener("click", () => {
       const next = JSON.parse(JSON.stringify(siteContent));
       next.trustItems.push("<p>New line</p>");
@@ -389,6 +771,7 @@
     remTrust.type = "button";
     remTrust.className = "btn-secondary";
     remTrust.textContent = "Remove last line";
+    tip(remTrust, "Deletes the last trust line only. Save changes to apply.");
     remTrust.addEventListener("click", () => {
       if (siteContent.trustItems.length <= 1) return;
       const next = JSON.parse(JSON.stringify(siteContent));
@@ -430,6 +813,7 @@
     addSvc.type = "button";
     addSvc.className = "btn-secondary";
     addSvc.textContent = "Add service";
+    tip(addSvc, "Adds another service card on the homepage. Save changes to publish.");
     addSvc.addEventListener("click", () => {
       const next = JSON.parse(JSON.stringify(siteContent));
       next.services.push({ titleHtml: "<p>New service</p>", bodyHtml: "<p>Description</p>" });
@@ -439,6 +823,7 @@
     remSvc.type = "button";
     remSvc.className = "btn-secondary";
     remSvc.textContent = "Remove last";
+    tip(remSvc, "Removes the last service in the list. Save changes to apply.");
     remSvc.addEventListener("click", () => {
       if (siteContent.services.length <= 1) return;
       const next = JSON.parse(JSON.stringify(siteContent));
@@ -464,7 +849,7 @@
     const help = document.createElement("p");
     help.className = "muted";
     help.textContent =
-      "Each project needs both a before and an after image. Reorder with ↑ ↓. Empty rows are removed when you save.";
+      "Each project needs both a before and an after image — upload below (no URLs). Reorder with ↑ ↓. Empty rows are removed when you save.";
     gal.appendChild(help);
 
     const vcField = document.createElement("div");
@@ -478,6 +863,10 @@
     vcInput.min = "0";
     vcInput.max = "50";
     vcInput.value = String(Number(c.gallery.visibleCount ?? 2));
+    tip(
+      vcInput,
+      "How many before/after pairs show before the “View more” button. Use 0 to show every project at once."
+    );
     vcLabel.appendChild(vcInput);
     const vcHint = document.createElement("span");
     vcHint.className = "field-hint";
@@ -485,6 +874,13 @@
     vcField.appendChild(vcLabel);
     vcField.appendChild(vcHint);
     gal.appendChild(vcField);
+
+    addInput(
+      gal,
+      "“View more projects” button label",
+      ["gallery", "viewMoreLabel"],
+      c.gallery.viewMoreLabel
+    );
 
     addPlainHeading(
       gal,
@@ -509,6 +905,10 @@
     addPairBtn.type = "button";
     addPairBtn.className = "btn-primary";
     addPairBtn.textContent = "+ Add before/after project";
+    tip(
+      addPairBtn,
+      "Adds a new before/after pair. Upload both images before saving, or the row may be dropped."
+    );
     addPairBtn.addEventListener("click", () => {
       const next = JSON.parse(JSON.stringify(siteContent));
       if (!next.gallery.pairs) next.gallery.pairs = [];
@@ -536,7 +936,7 @@
       const upBtn = document.createElement("button");
       upBtn.type = "button";
       upBtn.className = "btn-secondary btn-icon";
-      upBtn.title = "Move up";
+      upBtn.title = "Move this project higher in the gallery order.";
       upBtn.textContent = "↑";
       upBtn.disabled = i === 0;
       upBtn.addEventListener("click", () => {
@@ -549,7 +949,7 @@
       const downBtn = document.createElement("button");
       downBtn.type = "button";
       downBtn.className = "btn-secondary btn-icon";
-      downBtn.title = "Move down";
+      downBtn.title = "Move this project lower in the gallery order.";
       downBtn.textContent = "↓";
       downBtn.disabled = i === (c.gallery.pairs || []).length - 1;
       downBtn.addEventListener("click", () => {
@@ -563,6 +963,7 @@
       delBtn.type = "button";
       delBtn.className = "btn-secondary btn-danger";
       delBtn.textContent = "Delete";
+      tip(delBtn, "Permanently remove this before/after project after you confirm.");
       delBtn.addEventListener("click", () => {
         if (!confirm(`Delete project ${i + 1}?`)) return;
         const next = JSON.parse(JSON.stringify(siteContent));
@@ -587,23 +988,17 @@
     `;
       block.appendChild(preview);
 
-      const beforeUrl = addInput(block, "Before image URL", ["gallery", "pairs", i, "beforeImage"], pair.beforeImage);
-      const afterUrl = addInput(block, "After image URL", ["gallery", "pairs", i, "afterImage"], pair.afterImage);
-      const upRow = document.createElement("div");
-      upRow.className = "row-actions";
-      const upBefore = document.createElement("button");
-      upBefore.type = "button";
-      upBefore.className = "btn-secondary";
-      upBefore.textContent = "Upload before";
-      upBefore.addEventListener("click", () => uploadToField(beforeUrl));
-      const upAfter = document.createElement("button");
-      upAfter.type = "button";
-      upAfter.className = "btn-secondary";
-      upAfter.textContent = "Upload after";
-      upAfter.addEventListener("click", () => uploadToField(afterUrl));
-      upRow.appendChild(upBefore);
-      upRow.appendChild(upAfter);
-      block.appendChild(upRow);
+      const thumbs = preview.querySelectorAll(".gallery-thumb");
+      addImageUpload(block, "Before image", ["gallery", "pairs", i, "beforeImage"], pair.beforeImage, (url) => {
+        thumbs[0].innerHTML = url
+          ? `<img src="${escapeAdminAttr(url)}" alt="Before preview" />`
+          : "<span>Before</span>";
+      });
+      addImageUpload(block, "After image", ["gallery", "pairs", i, "afterImage"], pair.afterImage, (url) => {
+        thumbs[1].innerHTML = url
+          ? `<img src="${escapeAdminAttr(url)}" alt="After preview" />`
+          : "<span>After</span>";
+      });
       addPlainSingleLine(
         block,
         "Before caption",
@@ -627,6 +1022,12 @@
     main.appendChild(sectionTitle("Customer reviews", "admin-testimonials"));
     const rev = document.createElement("div");
     rev.className = "admin-section admin-card";
+    addInput(
+      rev,
+      "Reviews section heading (above the cards)",
+      ["reviewsTitle"],
+      c.reviewsTitle
+    );
     (c.testimonials || []).forEach((t, i) => {
       const block = document.createElement("div");
       block.className = "sub-block";
@@ -651,16 +1052,7 @@
         t.authorHtml,
         "reviewer"
       );
-      const photoIn = addInput(block, "Photo URL (optional)", ["testimonials", i, "photoUrl"], t.photoUrl || "");
-      const upPhoto = document.createElement("button");
-      upPhoto.type = "button";
-      upPhoto.className = "btn-secondary";
-      upPhoto.textContent = "Upload photo";
-      upPhoto.addEventListener("click", () => uploadToField(photoIn));
-      const phRow = document.createElement("div");
-      phRow.className = "row-actions";
-      phRow.appendChild(upPhoto);
-      block.appendChild(phRow);
+      addImageUpload(block, "Photo (optional)", ["testimonials", i, "photoUrl"], t.photoUrl || "");
       rev.appendChild(block);
     });
     const revActions = document.createElement("div");
@@ -669,6 +1061,7 @@
     addRev.type = "button";
     addRev.className = "btn-secondary";
     addRev.textContent = "Add review";
+    tip(addRev, "Adds another testimonial block on the homepage.");
     addRev.addEventListener("click", () => {
       const next = JSON.parse(JSON.stringify(siteContent));
       next.testimonials.push({
@@ -683,6 +1076,7 @@
     remRev.type = "button";
     remRev.className = "btn-secondary";
     remRev.textContent = "Remove last";
+    tip(remRev, "Removes the last review in the list.");
     remRev.addEventListener("click", () => {
       if (siteContent.testimonials.length <= 1) return;
       const next = JSON.parse(JSON.stringify(siteContent));
@@ -729,6 +1123,7 @@
     addStep.type = "button";
     addStep.className = "btn-secondary";
     addStep.textContent = "Add step";
+    tip(addStep, "Adds another numbered step in the “How it works” section.");
     addStep.addEventListener("click", () => {
       const next = JSON.parse(JSON.stringify(siteContent));
       next.processSteps.push({ titleHtml: "<p>New step</p>", bodyHtml: "<p>Details</p>" });
@@ -738,6 +1133,7 @@
     remStep.type = "button";
     remStep.className = "btn-secondary";
     remStep.textContent = "Remove last";
+    tip(remStep, "Removes the last process step.");
     remStep.addEventListener("click", () => {
       if (siteContent.processSteps.length <= 1) return;
       const next = JSON.parse(JSON.stringify(siteContent));
@@ -774,6 +1170,38 @@
     addPlainMultiLine(cs, "Intro text", null, ["contactSection", "leadHtml"], c.contactSection.leadHtml, 3);
     addInput(cs, "Phone (display)", ["contactSection", "phoneDisplay"], c.contactSection.phoneDisplay);
     addInput(cs, "Email (display)", ["contactSection", "emailDisplay"], c.contactSection.emailDisplay);
+    addPlainSingleLine(
+      cs,
+      "Short line above quote button (contact column)",
+      "Shown in the card next to your contact copy.",
+      ["contactSection", "ctaLeadHtml"],
+      c.contactSection.ctaLeadHtml,
+      "lineP"
+    );
+    addInput(
+      cs,
+      "Quote button (contact column)",
+      ["contactSection", "ctaButtonLabel"],
+      c.contactSection.ctaButtonLabel
+    );
+    addInput(
+      cs,
+      "Quote popup title",
+      ["contactSection", "quoteModalTitle"],
+      c.contactSection.quoteModalTitle
+    );
+    addInput(
+      cs,
+      "Floating bottom-right button label",
+      ["contactSection", "stickyCtaLabel"],
+      c.contactSection.stickyCtaLabel
+    );
+    addInput(
+      cs,
+      "Quote form submit button label",
+      ["contactSection", "quoteFormSubmitLabel"],
+      c.contactSection.quoteFormSubmitLabel
+    );
     main.appendChild(cs);
 
     main.appendChild(sectionTitle("Footer", "admin-footer"));
@@ -783,37 +1211,9 @@
     main.appendChild(foot);
   }
 
-  async function uploadToField(input) {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = "image/*";
-    fileInput.addEventListener("change", async () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) return;
-      saveStatus.textContent = "Uploading…";
-      try {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/admin/upload", { method: "POST", ...fetchOpts, body: fd });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.message || "Upload failed");
-        input.value = data.url;
-        saveStatus.textContent = "Image uploaded — click Save changes.";
-      } catch (e) {
-        saveStatus.textContent = e.message || "Upload failed";
-      }
-    });
-    fileInput.click();
-  }
-
   function collectPayload() {
     const out = JSON.parse(JSON.stringify(siteContent));
-    applyPlainToPayload(out);
-
-    editorRoot.querySelectorAll("input[data-path]").forEach((input) => {
-      const path = JSON.parse(input.dataset.path);
-      setDeep(out, path, input.value);
-    });
+    collectPathFieldsFromDom(out);
 
     const ta = document.getElementById("service-options-textarea");
     if (ta) {
@@ -894,9 +1294,17 @@
     await fetch("/api/admin/logout", { method: "POST", ...fetchOpts });
     editorRoot.innerHTML = "";
     siteContent = null;
-    plainBindings = [];
     await checkSession();
   });
+
+  tip(
+    saveBtn,
+    "Writes every field to the server. Visitors see updates after they refresh the homepage."
+  );
+  tip(logoutBtn, "Ends your admin session in this browser. You can sign in again anytime.");
+
+  const loginSubmitBtn = loginForm && loginForm.querySelector('button[type="submit"]');
+  tip(loginSubmitBtn, "Sign in with the admin password from your server .env (ADMIN_PASSWORD).");
 
   checkSession().catch(() => {
     loginError.textContent = "Could not reach server.";

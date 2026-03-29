@@ -9,6 +9,11 @@ const multer = require("multer");
 const sanitizeHtml = require("sanitize-html");
 
 const { ensureSiteContentFile, readSiteContent, writeSiteContent } = require("./lib/content");
+const {
+  sendLeadNotificationEmail,
+  logLeadEmailStatus,
+  verifySmtpConnection
+} = require("./lib/leadEmail");
 
 const ROOT = __dirname;
 const ENV_PATH = path.join(ROOT, ".env");
@@ -70,6 +75,26 @@ const upload = multer({
   }
 });
 
+const uploadHeroMedia = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "") || "";
+      const safe =
+        ext && /^\.(jpe?g|png|gif|webp|mp4|webm)$/i.test(ext) ? ext.toLowerCase() : ".mp4";
+      cb(null, `${randomUUID()}${safe}`);
+    }
+  }),
+  limits: { fileSize: 45 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      /^image\/(jpeg|png|gif|webp)$/.test(file.mimetype) ||
+      /^video\/(mp4|webm)$/.test(file.mimetype);
+    if (ok) cb(null, true);
+    else cb(new Error("Use JPEG, PNG, WebP, GIF, MP4, or WebM for hero media"));
+  }
+});
+
 function sanitizeRich(html) {
   if (typeof html !== "string") return "";
   return sanitizeHtml(html, {
@@ -112,6 +137,60 @@ function sanitizePlain(text) {
   return sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} });
 }
 
+function sanitizeUploadPath(p) {
+  if (typeof p !== "string") return "";
+  const t = p.trim();
+  if (!t.startsWith("/uploads/")) return "";
+  if (t.includes("..")) return "";
+  return t;
+}
+
+function sanitizeHeroBackground(bg) {
+  if (!bg || typeof bg !== "object") {
+    return {
+      mode: "gradient",
+      imageUrl: "",
+      videoUrl: "",
+      objectPosition: "center center",
+      objectFit: "cover",
+      overlayOpacity: 0.45
+    };
+  }
+  let mode = ["gradient", "image", "video"].includes(bg.mode) ? bg.mode : "gradient";
+  const positions = new Set([
+    "center center",
+    "center top",
+    "center bottom",
+    "left center",
+    "right center",
+    "left top",
+    "right top",
+    "left bottom",
+    "right bottom"
+  ]);
+  const objectPosition = positions.has(String(bg.objectPosition || "").trim())
+    ? String(bg.objectPosition).trim()
+    : "center center";
+  const objectFit = bg.objectFit === "contain" ? "contain" : "cover";
+  let overlayOpacity = Number(bg.overlayOpacity);
+  if (Number.isNaN(overlayOpacity)) overlayOpacity = 0.45;
+  overlayOpacity = Math.max(0, Math.min(0.9, overlayOpacity));
+  const imageUrl = sanitizeUploadPath(bg.imageUrl);
+  const videoUrl = sanitizeUploadPath(bg.videoUrl);
+  if (mode === "gradient") {
+    if (imageUrl) mode = "image";
+    else if (videoUrl) mode = "video";
+  }
+  return {
+    mode,
+    imageUrl,
+    videoUrl,
+    objectPosition,
+    objectFit,
+    overlayOpacity
+  };
+}
+
 function sanitizeSiteContent(raw) {
   if (!raw || typeof raw !== "object") return raw;
   const out = JSON.parse(JSON.stringify(raw));
@@ -121,6 +200,7 @@ function sanitizeSiteContent(raw) {
     "ctaPrimary",
     "ctaSecondary",
     "servicesTitle",
+    "reviewsTitle",
     "copyrightName",
     "phoneDisplay",
     "emailDisplay",
@@ -132,7 +212,15 @@ function sanitizeSiteContent(raw) {
     "email",
     "beforeImage",
     "afterImage",
-    "photoUrl"
+    "photoUrl",
+    "viewMoreLabel",
+    "ctaButtonLabel",
+    "quoteModalTitle",
+    "stickyCtaLabel",
+    "quoteFormSubmitLabel",
+    "servicesLabel",
+    "galleryLabel",
+    "contactLabel"
   ]);
 
   function walk(obj) {
@@ -171,6 +259,10 @@ function sanitizeSiteContent(raw) {
   }
 
   walk(out);
+
+  if (out.hero && out.hero.background) {
+    out.hero.background = sanitizeHeroBackground(out.hero.background);
+  }
 
   if (out.gallery && typeof out.gallery === "object") {
     let vc = Number(out.gallery.visibleCount);
@@ -252,6 +344,15 @@ function isValidEmail(email) {
 async function saveLead(lead) {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.appendFile(LEADS_FILE, `${JSON.stringify(lead)}\n`, "utf8");
+}
+
+function leadPhotoUpload(req, res, next) {
+  upload.single("yardPhoto")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ ok: false, message: err.message || "Invalid image" });
+    }
+    next();
+  });
 }
 
 app.get("/api/content", async (_req, res) => {
@@ -341,15 +442,32 @@ app.post("/api/admin/upload", requireAdmin, (req, res) => {
   });
 });
 
-app.post("/api/leads", async (req, res) => {
+app.post("/api/admin/upload-hero", requireAdmin, (req, res) => {
+  uploadHeroMedia.single("file")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ ok: false, message: err.message || "Upload failed" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "No file" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ ok: true, url });
+  });
+});
+
+app.post("/api/leads", leadPhotoUpload, async (req, res) => {
   try {
     const fullName = sanitizeInput(req.body.fullName);
     const email = sanitizeInput(req.body.email).toLowerCase();
     const phone = sanitizeInput(req.body.phone);
     const serviceType = sanitizeInput(req.body.serviceType);
     const message = sanitizeInput(req.body.message);
-    const yardPhotoUrl = sanitizeInput(req.body.yardPhotoUrl);
     const website = sanitizeInput(req.body.website);
+
+    let yardPhotoUrl = "";
+    if (req.file) {
+      yardPhotoUrl = `/uploads/${req.file.filename}`;
+    }
 
     if (website) {
       return res.status(200).json({ ok: true, message: "Submitted" });
@@ -390,7 +508,24 @@ app.post("/api/leads", async (req, res) => {
     };
 
     await saveLead(lead);
-    return res.status(201).json({ ok: true, message: "Thanks! We will contact you shortly." });
+
+    const mailResult = await sendLeadNotificationEmail(lead);
+    if (!mailResult.ok) {
+      if (mailResult.error === "smtp_send_failed") {
+        console.error("[Lead email] SMTP rejected or failed:", mailResult.detail || "");
+      } else {
+        console.warn(
+          `[Lead email] Not sent (${mailResult.error}). Fix .env — see .env.example and run: npm run test:smtp`
+        );
+      }
+    } else {
+      console.log("[Lead email] Sent OK", mailResult.messageId || "");
+    }
+
+    return res.status(201).json({
+      ok: true,
+      message: "Our team will get in touch with you soon."
+    });
   } catch (error) {
     console.error("Lead submission error:", error);
     return res.status(500).json({ ok: false, message: "Something went wrong. Please try again." });
@@ -406,9 +541,18 @@ async function start() {
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
   await ensureSiteContentFile();
 
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`Harmeet Landscaping site running on http://localhost:${PORT}`);
     console.log(`Admin (same site): http://localhost:${PORT}/admin`);
+    logLeadEmailStatus();
+    if (process.env.SMTP_VERIFY_ON_START === "true" || process.env.SMTP_VERIFY_ON_START === "1") {
+      const v = await verifySmtpConnection();
+      if (v.ok) {
+        console.log("SMTP verify: OK");
+      } else {
+        console.warn("SMTP verify failed:", v.error);
+      }
+    }
     if (!adminPasswordHash) {
       console.warn(
         "Admin login is DISABLED — set ADMIN_PASSWORD or ADMIN_PASSWORD_HASH in .env (copy from .env.example)."

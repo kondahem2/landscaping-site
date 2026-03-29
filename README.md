@@ -5,9 +5,9 @@ Production-oriented site with a **public lead form**, **sticky “Get free quote
 ## Features
 
 - Landing page loads content from `GET /api/content` (stored in `data/site-content.json`, seeded from `data/default-site-content.json`).
-- Sticky **Get free quote** button opens a modal with the quote form (same API as before: `POST /api/leads`).
+- Sticky **Get free quote** button opens a modal with the quote form (`POST /api/leads`). Submissions are appended to **`data/leads.jsonl`**, and you can optionally receive **email copies** (see below).
 - **Admin UI** at **`/admin`** (same site as the homepage — not a separate project). Login, plain-text fields with a **jump-to** sidebar, image uploads to `public/uploads/`, save to server. Bookmark `/admin`; it is not shown in the main navigation.
-- **Before/after gallery**: reorder, delete, add projects; both images required per project on save; **visible count** controls how many pairs show before a **View more** control on the public site. **Testimonials** support an optional photo URL + upload.
+- **Before/after gallery**: reorder, delete, add projects; both images required per project on save (upload in admin — no pasted URLs); **visible count** controls how many pairs show before a **View more** control on the public site. **Testimonials** support an optional photo upload.
 - Sessions via `express-session`; password via bcrypt (`ADMIN_PASSWORD` or `ADMIN_PASSWORD_HASH`).
 
 ## Setup
@@ -46,6 +46,33 @@ Production-oriented site with a **public lead form**, **sticky “Get free quote
 
 Also set a strong `SESSION_SECRET` in production.
 
+### Quote email notifications (optional)
+
+To get an email whenever someone submits the quote form, add to `.env`:
+
+| Variable | Purpose |
+|----------|---------|
+| `LEAD_EMAIL_TO` | Your address (comma-separated for several inboxes) |
+| `SMTP_HOST` | e.g. `smtp.gmail.com`, your host’s SMTP, SendGrid, etc. |
+| `SMTP_PORT` | Usually `587` (STARTTLS) or `465` (SSL) |
+| `SMTP_USER` / `SMTP_PASS` | SMTP login (Gmail needs an [App Password](https://support.google.com/accounts/answer/185833), not your normal password) |
+| `SMTP_SECURE` | Set `true` only if you use port **465** |
+| `LEAD_EMAIL_FROM` | Optional “From” header (defaults to `Harmeet Landscaping <SMTP_USER>`) |
+| `LEAD_EMAIL_DISABLED` | Set `true` to keep saving leads but skip sending mail |
+| `SMTP_VERIFY_ON_START` | Set `true` to log SMTP login test when the server starts |
+
+If `LEAD_EMAIL_TO` or SMTP is not set, leads are still saved to disk; the server logs `Lead email: disabled` at startup.
+
+**If you do not receive emails:**
+
+1. **Use `.env` in the project folder** — not only `.env.example`. Restart the server after any change (`npm run dev`).
+2. **Run** `npm run test:smtp` — it checks the SMTP connection and sends one test message to `LEAD_EMAIL_TO`. If this fails, fix credentials before testing the form again.
+3. **Gmail:** create an [App Password](https://support.google.com/accounts/answer/185833) (2-Step Verification must be on). Use `SMTP_PORT=587`, `SMTP_SECURE=false`.
+4. **Production (e.g. Render):** add the same variables in the host’s **Environment** tab; they are not copied from your laptop automatically.
+5. **Spam folder** — new senders often land in Promotions/Spam.
+
+After each form submit, the server log will show either `[Lead email] Sent OK` or a clear reason (e.g. not configured, or SMTP error details).
+
 ## Project layout
 
 ```text
@@ -54,7 +81,8 @@ landscaping-leads-site/
 │  ├─ default-site-content.json   # seed content (edit to change first-run defaults)
 │  └─ site-content.json           # live content (created on first run, gitignored)
 ├─ lib/
-│  └─ content.js
+│  ├─ content.js
+│  └─ leadEmail.js
 ├─ public/
 │  ├─ index.html
 │  ├─ app.js
@@ -64,7 +92,8 @@ landscaping-leads-site/
 │  ├─ admin.css
 │  └─ uploads/                    # gallery uploads (gitignored except .gitkeep)
 ├─ scripts/
-│  └─ hash-password.js
+│  ├─ hash-password.js
+│  └─ test-smtp.js
 ├─ server.js
 └─ package.json
 ```
@@ -138,6 +167,8 @@ Open **Environment** and add:
 | `ADMIN_PASSWORD` | Password you will use to log in at **`/admin`**. |
 
 Alternatively you can set **`ADMIN_PASSWORD_HASH`** (from `npm run hash-password -- "your-password"`) instead of `ADMIN_PASSWORD`.
+
+**Quote emails:** add the same **`LEAD_EMAIL_TO`** and **`SMTP_*`** variables you use locally so new leads are emailed in production.
 
 If you use the included **`render.yaml`** (Blueprint) instead of a manual Web Service, Render can generate `SESSION_SECRET` for you — you must still add **`ADMIN_PASSWORD`** (or hash) in the dashboard after deploy.
 

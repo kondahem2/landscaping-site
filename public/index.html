@@ -5,19 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta id="meta-desc" name="description" content="" />
     <title id="doc-title">Harmeet Landscaping</title>
-    <link rel="stylesheet" href="./styles.css?v=5" />
-    <link rel="stylesheet" href="./admin.css?v=5" />
+    <link rel="stylesheet" href="./styles.css?v=11" />
+    <link rel="stylesheet" href="./admin.css?v=7" />
   </head>
   <body>
     <div id="site-view">
-      <header class="hero">
+      <header class="hero hero-bg-gradient" id="site-hero">
+        <div class="hero-media-layer" id="hero-media-layer" hidden aria-hidden="true">
+          <div class="hero-media-slot" id="hero-media-slot"></div>
+          <div class="hero-media-overlay" id="hero-media-overlay"></div>
+        </div>
         <nav class="container nav">
           <div class="brand" id="site-brand">Harmeet Landscaping</div>
           <div class="nav-links">
             <a href="#services">Services</a>
             <a href="#gallery">Gallery</a>
             <a href="#contact">Contact</a>
-            <a id="nav-call" href="tel:" class="btn btn-outline">Call Now</a>
+            <a id="nav-call" href="tel:" class="btn btn-outline"></a>
           </div>
         </nav>
         <section class="container hero-content">
@@ -41,16 +45,14 @@
             <div class="section-lead" id="gallery-lead"></div>
             <div id="gallery-mount" class="gallery-mount"></div>
             <div id="gallery-view-more-wrap" class="gallery-view-more-wrap" hidden>
-              <button type="button" class="btn gallery-view-more-btn" id="gallery-view-more-btn">
-                View more projects
-              </button>
+              <button type="button" class="btn gallery-view-more-btn" id="gallery-view-more-btn"></button>
             </div>
             <div id="gallery-rest" class="gallery-rest" hidden aria-hidden="true"></div>
           </div>
         </section>
 
         <section class="container section" id="reviews">
-          <h2 id="reviews-title">What clients say</h2>
+          <h2 id="reviews-title"></h2>
           <div class="cards" id="reviews-mount"></div>
         </section>
 
@@ -72,10 +74,8 @@
           <div class="container form-wrap contact-block">
             <div id="contact-copy"></div>
             <div class="contact-cta-panel">
-              <p class="contact-lead">Ready to get started?</p>
-              <button type="button" class="btn btn-block" id="contact-open-quote" data-open-quote>
-                Get a free quote
-              </button>
+              <div id="contact-cta-lead" class="contact-lead rich"></div>
+              <button type="button" class="btn btn-block" id="contact-open-quote" data-open-quote></button>
               <p id="contact-phone-line"></p>
               <p id="contact-email-line"></p>
             </div>
@@ -89,55 +89,72 @@
         </div>
       </footer>
 
-      <button type="button" class="sticky-cta" id="sticky-open-quote" data-open-quote aria-haspopup="dialog">
-        Get free quote
-      </button>
+      <button type="button" class="sticky-cta" id="sticky-open-quote" data-open-quote aria-haspopup="dialog"></button>
 
       <div id="quote-modal" class="modal" hidden aria-hidden="true">
         <div class="modal-backdrop" data-close-modal tabindex="-1"></div>
-        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
+        <div
+          class="modal-panel"
+          id="quote-modal-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quote-modal-title"
+        >
           <button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>
-          <h2 id="quote-modal-title">Get a free quote</h2>
-          <form id="quoteForm" class="lead-form" novalidate>
-            <label>
-              Full name
-              <input type="text" name="fullName" required minlength="2" autocomplete="name" />
-            </label>
-            <label>
-              Email
-              <input type="email" name="email" required autocomplete="email" />
-            </label>
-            <label>
-              Phone
-              <input type="tel" name="phone" required minlength="8" autocomplete="tel" />
-            </label>
-            <label>
-              Service needed
-              <select name="serviceType" id="service-select" required></select>
-            </label>
-            <label>
-              Project details
-              <textarea
-                name="message"
-                rows="4"
-                required
-                minlength="10"
-                placeholder="Tell us what you want done..."
-              ></textarea>
-            </label>
-            <label>
-              Yard photo URL (optional)
-              <input type="url" name="yardPhotoUrl" placeholder="https://example.com/photo.jpg" />
-            </label>
 
-            <div class="hp-field" aria-hidden="true">
-              <label for="website">Website</label>
-              <input id="website" type="text" name="website" tabindex="-1" autocomplete="off" />
-            </div>
+          <div id="quote-form-view">
+            <h2 id="quote-modal-title"></h2>
+            <form id="quoteForm" class="lead-form" novalidate enctype="multipart/form-data" method="post">
+              <label>
+                Full name
+                <input type="text" name="fullName" required minlength="2" autocomplete="name" />
+              </label>
+              <label>
+                Email
+                <input type="email" name="email" required autocomplete="email" />
+              </label>
+              <label>
+                Phone
+                <input type="tel" name="phone" required minlength="8" autocomplete="tel" />
+              </label>
+              <label>
+                Service needed
+                <select name="serviceType" id="service-select" required></select>
+              </label>
+              <label>
+                Project details
+                <textarea
+                  name="message"
+                  rows="4"
+                  required
+                  minlength="10"
+                  placeholder="Tell us what you want done..."
+                ></textarea>
+              </label>
+              <label class="lead-file-label">
+                Yard photo (optional)
+                <input type="file" name="yardPhoto" accept="image/jpeg,image/png,image/gif,image/webp" />
+                <span class="field-hint">JPG, PNG, GIF, or WebP — up to 8 MB</span>
+              </label>
 
-            <button type="submit" class="btn btn-block">Submit request</button>
-            <p id="formStatus" role="status" aria-live="polite"></p>
-          </form>
+              <div class="hp-field" aria-hidden="true">
+                <label for="website">Website</label>
+                <input id="website" type="text" name="website" tabindex="-1" autocomplete="off" />
+              </div>
+
+              <button type="submit" class="btn btn-block" id="quote-form-submit"></button>
+              <p id="formStatus" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div id="quote-success-view" class="quote-success-view" hidden>
+            <div class="quote-success-icon" aria-hidden="true">✓</div>
+            <h2 id="quote-success-title" class="quote-success-heading">Thank you!</h2>
+            <p id="quote-success-message" class="quote-success-message"></p>
+            <button type="button" class="btn btn-block" data-close-modal id="quote-success-close">
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -184,7 +201,7 @@
       </div>
     </div>
 
-    <script src="./app.js?v=5"></script>
-    <script src="./admin.js?v=5"></script>
+    <script src="./app.js?v=13"></script>
+    <script src="./admin.js?v=11"></script>
   </body>
 </html>

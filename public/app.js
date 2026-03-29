@@ -1,7 +1,17 @@
 const modal = document.getElementById("quote-modal");
+const modalPanel = document.getElementById("quote-modal-panel");
 const form = document.getElementById("quoteForm");
 const statusEl = document.getElementById("formStatus");
 const serviceSelect = document.getElementById("service-select");
+const quoteFormView = document.getElementById("quote-form-view");
+const quoteSuccessView = document.getElementById("quote-success-view");
+const quoteSuccessMessageEl = document.getElementById("quote-success-message");
+const quoteSuccessCloseBtn = document.getElementById("quote-success-close");
+
+const DEFAULT_QUOTE_SUCCESS_MESSAGE = "Our team will get in touch with you soon.";
+
+/** Refreshed from site content on each render; used to restore the submit button label after sending. */
+let quoteFormSubmitButtonLabel = "Submit request";
 
 function escapeHtml(s) {
   return String(s)
@@ -16,19 +26,21 @@ function escapeAttr(s) {
 }
 
 function galleryPairHtml(pair) {
-  const beforeStyle = pair.beforeImage
-    ? `background-image:url(${JSON.stringify(pair.beforeImage)})`
+  const beforeImg = pair.beforeImage
+    ? `<div class="gallery-item-bg"><img src="${escapeAttr(pair.beforeImage)}" alt="" loading="lazy" decoding="async" sizes="(max-width: 640px) 100vw, 50vw" /></div>`
     : "";
-  const afterStyle = pair.afterImage
-    ? `background-image:url(${JSON.stringify(pair.afterImage)})`
+  const afterImg = pair.afterImage
+    ? `<div class="gallery-item-bg"><img src="${escapeAttr(pair.afterImage)}" alt="" loading="lazy" decoding="async" sizes="(max-width: 640px) 100vw, 50vw" /></div>`
     : "";
   return `
       <div class="gallery-pair">
-        <article class="gallery-item ${pair.beforeImage ? "has-image" : ""}" style="${beforeStyle}">
+        <article class="gallery-item ${pair.beforeImage ? "has-image" : ""}">
+          ${beforeImg}
           <span>Before</span>
           <div class="gallery-caption rich">${pair.beforeCaptionHtml || ""}</div>
         </article>
-        <article class="gallery-item ${pair.afterImage ? "has-image" : ""}" style="${afterStyle}">
+        <article class="gallery-item ${pair.afterImage ? "has-image" : ""}">
+          ${afterImg}
           <span>After</span>
           <div class="gallery-caption rich">${pair.afterCaptionHtml || ""}</div>
         </article>
@@ -36,11 +48,35 @@ function galleryPairHtml(pair) {
     `;
 }
 
+function showQuoteFormView() {
+  if (quoteFormView) quoteFormView.hidden = false;
+  if (quoteSuccessView) quoteSuccessView.hidden = true;
+  if (modalPanel) modalPanel.setAttribute("aria-labelledby", "quote-modal-title");
+}
+
+function showQuoteSuccessView(message) {
+  const text =
+    (message && String(message).trim()) || DEFAULT_QUOTE_SUCCESS_MESSAGE;
+  if (quoteSuccessMessageEl) quoteSuccessMessageEl.textContent = text;
+  if (quoteFormView) quoteFormView.hidden = true;
+  if (quoteSuccessView) quoteSuccessView.hidden = false;
+  if (modalPanel) modalPanel.setAttribute("aria-labelledby", "quote-success-title");
+  if (quoteSuccessCloseBtn) quoteSuccessCloseBtn.focus();
+}
+
 function openQuoteModal() {
+  showQuoteFormView();
+  setStatus("");
+  if (form) form.reset();
+  const submitBtn = form && form.querySelector("button[type='submit']");
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Submit request";
+  }
   modal.hidden = false;
   modal.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
-  const firstInput = form.querySelector("input, select, textarea, button");
+  const firstInput = form && form.querySelector("input, select, textarea, button");
   if (firstInput) firstInput.focus();
 }
 
@@ -48,6 +84,8 @@ function closeQuoteModal() {
   modal.hidden = true;
   modal.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
+  setStatus("");
+  showQuoteFormView();
 }
 
 function initModalChrome() {
@@ -84,6 +122,60 @@ function populateServiceOptions(options) {
   });
 }
 
+/**
+ * Full-bleed hero image/video behind nav + headline, or default gradient.
+ */
+function applyHeroBackground(c) {
+  const header = document.getElementById("site-hero");
+  const layer = document.getElementById("hero-media-layer");
+  const slot = document.getElementById("hero-media-slot");
+  if (!header || !layer || !slot) return;
+
+  const bg = (c.hero && c.hero.background) || {};
+  let mode = bg.mode || "gradient";
+  const imgUrl = (bg.imageUrl || "").trim();
+  const videoUrl = (bg.videoUrl || "").trim();
+  // Match server/lib: if "gradient" is selected but a file was uploaded, still show media.
+  if (mode === "gradient") {
+    if (imgUrl) mode = "image";
+    else if (videoUrl) mode = "video";
+  }
+
+  const pos = bg.objectPosition || "center center";
+  const fit = bg.objectFit === "contain" ? "contain" : "cover";
+  let op = parseFloat(bg.overlayOpacity);
+  if (Number.isNaN(op)) op = 0.45;
+  op = Math.max(0, Math.min(0.9, op));
+
+  header.style.setProperty("--hero-object-fit", fit);
+  header.style.setProperty("--hero-object-position", pos);
+  header.style.setProperty("--hero-overlay-opacity", String(op));
+
+  const hasImage = mode === "image" && imgUrl;
+  const hasVideo = mode === "video" && videoUrl;
+  const useMedia = hasImage || hasVideo;
+
+  if (!useMedia) {
+    slot.innerHTML = "";
+    layer.hidden = true;
+    layer.setAttribute("aria-hidden", "true");
+    header.classList.remove("hero-bg-media");
+    header.classList.add("hero-bg-gradient");
+    return;
+  }
+
+  header.classList.remove("hero-bg-gradient");
+  header.classList.add("hero-bg-media");
+  layer.hidden = false;
+  layer.setAttribute("aria-hidden", "false");
+
+  if (hasVideo) {
+    slot.innerHTML = `<video src="${escapeAttr(videoUrl)}" autoplay muted playsinline loop></video>`;
+  } else {
+    slot.innerHTML = `<img src="${escapeAttr(imgUrl)}" alt="" loading="eager" decoding="async" sizes="100vw" />`;
+  }
+}
+
 function renderSite(content) {
   const c = content;
   document.getElementById("doc-title").textContent = c.meta.title || "Harmeet Landscaping";
@@ -92,9 +184,23 @@ function renderSite(content) {
 
   document.getElementById("site-brand").textContent = c.brand || "Harmeet Landscaping";
 
+  const navRoot = document.querySelector("header.hero .nav-links");
+  if (navRoot) {
+    const nv = c.nav || {};
+    const a = (hash, label, fallback) => {
+      const el = navRoot.querySelector(`a[href="${hash}"]`);
+      if (el) el.textContent = (label || fallback).trim() || fallback;
+    };
+    a("#services", nv.servicesLabel, "Services");
+    a("#gallery", nv.galleryLabel, "Gallery");
+    a("#contact", nv.contactLabel, "Contact");
+  }
+
   const phone = c.contact.phone || "";
   const navCall = document.getElementById("nav-call");
   navCall.href = phone ? `tel:${phone}` : "#";
+  const hNav = c.hero || {};
+  navCall.textContent = (hNav.ctaSecondary || "Call Now").trim() || "Call Now";
 
   const hero = document.getElementById("hero-mount");
   const h = c.hero || {};
@@ -107,6 +213,7 @@ function renderSite(content) {
       <a href="${phone ? `tel:${escapeHtml(phone)}` : "#"}" class="btn btn-ghost">${escapeHtml(h.ctaSecondary || "Call Now")}</a>
     </div>
   `;
+  applyHeroBackground(c);
 
   const trustMount = document.getElementById("trust-mount");
   trustMount.innerHTML = (c.trustItems || []).map((html) => `<div class="trust-cell">${html}</div>`).join("");
@@ -142,6 +249,8 @@ function renderSite(content) {
   const viewWrap = document.getElementById("gallery-view-more-wrap");
   const restEl = document.getElementById("gallery-rest");
   const viewBtn = document.getElementById("gallery-view-more-btn");
+  const viewMoreText = (gallery.viewMoreLabel || "View more projects").trim() || "View more projects";
+  if (viewBtn) viewBtn.textContent = viewMoreText;
 
   if (restPairs.length > 0) {
     viewWrap.hidden = false;
@@ -164,7 +273,7 @@ function renderSite(content) {
     .map((t) => {
       const photo = (t.photoUrl || "").trim();
       const imgBlock = photo
-        ? `<div class="review-photo"><img src="${escapeAttr(photo)}" alt="" loading="lazy" width="160" height="160" /></div>`
+        ? `<div class="review-photo"><img src="${escapeAttr(photo)}" alt="" loading="lazy" decoding="async" sizes="(max-width: 480px) 100vw, 320px" /></div>`
         : "";
       return `
     <article class="card card-review">
@@ -178,6 +287,11 @@ function renderSite(content) {
   `;
     })
     .join("");
+
+  const reviewsHeading = document.getElementById("reviews-title");
+  if (reviewsHeading) {
+    reviewsHeading.textContent = c.reviewsTitle || "What clients say";
+  }
 
   document.getElementById("process-title").innerHTML = c.processTitle || "How it works";
   document.getElementById("process-mount").innerHTML = (c.processSteps || [])
@@ -211,6 +325,26 @@ function renderSite(content) {
     <div class="rich">${cs.titleHtml || ""}</div>
     <div class="rich">${cs.leadHtml || ""}</div>
   `;
+  const contactLeadEl = document.getElementById("contact-cta-lead");
+  if (contactLeadEl) {
+    contactLeadEl.innerHTML = cs.ctaLeadHtml || "";
+  }
+  const contactQuoteBtn = document.getElementById("contact-open-quote");
+  if (contactQuoteBtn) {
+    contactQuoteBtn.textContent = (cs.ctaButtonLabel || "Get a free quote").trim() || "Get a free quote";
+  }
+  const stickyCta = document.getElementById("sticky-open-quote");
+  if (stickyCta) {
+    stickyCta.textContent = (cs.stickyCtaLabel || "Get free quote").trim() || "Get free quote";
+  }
+  const modalTitleEl = document.getElementById("quote-modal-title");
+  if (modalTitleEl) {
+    modalTitleEl.textContent = (cs.quoteModalTitle || "Get a free quote").trim() || "Get a free quote";
+  }
+  quoteFormSubmitButtonLabel = (cs.quoteFormSubmitLabel || "Submit request").trim() || "Submit request";
+  const quoteSubmitBtn = form && form.querySelector("button[type='submit']");
+  if (quoteSubmitBtn) quoteSubmitBtn.textContent = quoteFormSubmitButtonLabel;
+
   document.getElementById(
     "contact-phone-line"
   ).innerHTML = `<strong>Call now:</strong> <a href="${phone ? `tel:${escapeHtml(phone)}` : "#"}">${escapeHtml(cs.phoneDisplay || phoneDisplay)}</a>`;
@@ -233,6 +367,7 @@ async function loadContent() {
     console.error(e);
     document.getElementById("hero-mount").innerHTML =
       "<p>Could not load site content. Is the server running?</p>";
+    applyHeroBackground({ hero: { background: { mode: "gradient" } } });
   }
 }
 
@@ -240,24 +375,33 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const formData = new FormData(form);
-  const payload = Object.fromEntries(formData.entries());
+  const fullName = (formData.get("fullName") || "").trim();
+  const email = (formData.get("email") || "").trim();
+  const phone = (formData.get("phone") || "").trim();
+  const serviceType = (formData.get("serviceType") || "").trim();
+  const message = (formData.get("message") || "").trim();
 
-  if (!payload.fullName || payload.fullName.trim().length < 2) {
+  if (!fullName || fullName.length < 2) {
     setStatus("Please enter your name.", true);
     return;
   }
 
-  if (!payload.email || !payload.email.includes("@")) {
+  if (!email || !email.includes("@")) {
     setStatus("Please enter a valid email.", true);
     return;
   }
 
-  if (!payload.phone || payload.phone.trim().length < 8) {
+  if (!phone || phone.length < 8) {
     setStatus("Please enter a valid phone number.", true);
     return;
   }
 
-  if (!payload.message || payload.message.trim().length < 10) {
+  if (!serviceType) {
+    setStatus("Please select a service.", true);
+    return;
+  }
+
+  if (!message || message.length < 10) {
     setStatus("Please add a short project description.", true);
     return;
   }
@@ -270,8 +414,7 @@ form.addEventListener("submit", async (event) => {
   try {
     const response = await fetch("/api/leads", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: formData
     });
 
     const result = await response.json();
@@ -280,13 +423,14 @@ form.addEventListener("submit", async (event) => {
     }
 
     form.reset();
-    setStatus(result.message || "Request submitted successfully.");
-    closeQuoteModal();
+    setStatus("");
+    const successMsg = result.message || DEFAULT_QUOTE_SUCCESS_MESSAGE;
+    showQuoteSuccessView(successMsg);
   } catch (error) {
     setStatus(error.message || "Something went wrong. Please try again.", true);
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = "Submit request";
+    submitButton.textContent = quoteFormSubmitButtonLabel;
   }
 });
 
